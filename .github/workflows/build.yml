@@ -19,9 +19,6 @@ jobs:
         with:
           ndk-version: r27
 
-      - name: Install Boost headers
-        run: sudo apt-get update && sudo apt-get install -y libboost-dev
-
       - name: Clone KenLM
         run: git clone --depth 1 https://github.com/kpu/kenlm.git
 
