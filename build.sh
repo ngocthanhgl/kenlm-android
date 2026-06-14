@@ -9,6 +9,6 @@ if [ ! -d kenlm ]; then
     git clone --depth 1 https://github.com/kpu/kenlm.git
 fi
 
-cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
+cmake -B build -S . -DCMAKE_BUILD_TYPE=Release -DANDROID_STL=c++_static
 cmake --build build --target kenlm_jni -j"$(nproc)"
 echo "Done! .so at: $(find build -name '*.so' 2>/dev/null | head -1)"
