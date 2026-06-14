@@ -23,7 +23,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libboost-dev
 
       - name: Clone KenLM
-        run: git clone --depth 1 --branch v1.0.0 https://github.com/kpu/kenlm.git
+        run: git clone --depth 1 https://github.com/kpu/kenlm.git
 
       - name: Configure CMake
         run: |

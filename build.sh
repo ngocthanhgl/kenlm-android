@@ -9,7 +9,7 @@ cd "$SCRIPT_DIR"
 
 if [ ! -d kenlm ]; then
     echo "Cloning KenLM..."
-    git clone --depth 1 --branch v1.0.0 https://github.com/kpu/kenlm.git
+    git clone --depth 1 https://github.com/kpu/kenlm.git
 fi
 
 cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
