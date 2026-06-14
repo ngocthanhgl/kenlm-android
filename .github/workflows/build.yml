@@ -1,0 +1,78 @@
+name: Build KenLM for Android
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        abi: [arm64-v8a, armeabi-v7a, x86_64, x86]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up NDK
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r27
+
+      - name: Install Boost headers
+        run: sudo apt-get update && sudo apt-get install -y libboost-dev
+
+      - name: Clone KenLM
+        run: git clone --depth 1 --branch v1.0.0 https://github.com/kpu/kenlm.git
+
+      - name: Configure CMake
+        run: |
+          cmake -B build -S . \
+            -DCMAKE_TOOLCHAIN_FILE=$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake \
+            -DANDROID_ABI=${{ matrix.abi }} \
+            -DANDROID_PLATFORM=android-26 \
+            -DCMAKE_BUILD_TYPE=MinSizeRel \
+            -DANDROID_STL=c++_shared
+
+      - name: Build
+        run: cmake --build build --target kenlm_jni
+
+      - name: Copy .so
+        run: |
+          mkdir -p output/${{ matrix.abi }}
+          find build -name "*.so" -exec cp {} output/${{ matrix.abi }}/ \;
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: kenlm-${{ matrix.abi }}
+          path: output/${{ matrix.abi }}/*.so
+
+  create-release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release directory
+        run: |
+          mkdir -p release
+          find artifacts -name "*.so" -exec cp {} release/ \;
+          ls -la release/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: KenLM Android Build ${{ github.run_number }}
+          body: "Automated build of KenLM for Android.\n\nABIs: arm64-v8a, armeabi-v7a, x86_64, x86"
+          files: release/*
+          draft: false
+          prerelease: false
