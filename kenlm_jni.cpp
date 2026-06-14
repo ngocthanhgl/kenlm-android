@@ -3,10 +3,11 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "lm/virtual_interface.hh"
 #include "lm/model.hh"
 
 struct ModelHandle {
-    lm::ngram::Model* model;
+    lm::base::Model* model;
 };
 
 extern "C" {
@@ -46,12 +47,16 @@ Java_dev_ngocthanhgl_vikey_ime_nlp_vietnamese_KenlmNatives_nativeScoreCandidates
     jsize count = env->GetArrayLength(candidates);
     std::unique_ptr<jfloat[]> scores(new jfloat[count]);
 
-    lm::ngram::State context_state = handle->model->BeginSentenceState();
+    size_t stateSize = handle->model->StateSize();
+    std::unique_ptr<char[]> contextState(new char[stateSize]);
+    std::unique_ptr<char[]> scoreState(new char[stateSize]);
+    handle->model->BeginSentenceWrite(contextState.get());
+
     if (prevWord != nullptr) {
         const char* prevStr = env->GetStringUTFChars(prevWord, nullptr);
-        lm::ngram::State temp;
-        handle->model->FullScore(context_state, prevStr, temp);
-        context_state = temp;
+        lm::WordIndex wordIdx = handle->model->BaseVocabulary().Index(prevStr);
+        handle->model->BaseScore(contextState.get(), wordIdx, scoreState.get());
+        memcpy(contextState.get(), scoreState.get(), stateSize);
         env->ReleaseStringUTFChars(prevWord, prevStr);
     }
 
@@ -59,8 +64,9 @@ Java_dev_ngocthanhgl_vikey_ime_nlp_vietnamese_KenlmNatives_nativeScoreCandidates
         jstring candidate = (jstring)env->GetObjectArrayElement(candidates, i);
         if (candidate == nullptr) { scores[i] = -99.0f; continue; }
         const char* candStr = env->GetStringUTFChars(candidate, nullptr);
-        lm::ngram::State out_state;
-        lm::FullScoreReturn ret = handle->model->FullScore(context_state, candStr, out_state);
+        lm::WordIndex wordIdx = handle->model->BaseVocabulary().Index(candStr);
+        lm::FullScoreReturn ret = handle->model->BaseFullScore(
+            contextState.get(), wordIdx, scoreState.get());
         scores[i] = ret.prob;
         env->ReleaseStringUTFChars(candidate, candStr);
         env->DeleteLocalRef(candidate);

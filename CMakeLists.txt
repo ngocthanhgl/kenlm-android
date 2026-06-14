@@ -52,7 +52,7 @@ set(KENLM_SRCS
 
 add_library(kenlm STATIC ${KENLM_SRCS})
 target_include_directories(kenlm PUBLIC ${KENLM_DIR})
-target_compile_definitions(kenlm PRIVATE KENLM_MAX_ORDER=5)
+target_compile_definitions(kenlm PUBLIC KENLM_MAX_ORDER=6)
 target_compile_options(kenlm PRIVATE -fPIC -w)
 
 add_library(kenlm_jni SHARED kenlm_jni.cpp)
