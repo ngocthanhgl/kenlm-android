@@ -34,16 +34,18 @@ jobs:
       - name: Build
         run: cmake --build build --target kenlm_jni
 
-      - name: Copy .so
+      - name: Rename .so with ABI tag
         run: |
-          mkdir -p output/${{ matrix.abi }}
-          find build -name "*.so" -exec cp {} output/${{ matrix.abi }}/ \;
+          find build -name "libkenlm_jni.so" -exec sh -c '
+            dir=$(dirname "$1")
+            cp "$1" "libkenlm_jni-${{ matrix.abi }}.so"
+          ' _ {} \;
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: kenlm-${{ matrix.abi }}
-          path: output/${{ matrix.abi }}/*.so
+          path: libkenlm_jni-${{ matrix.abi }}.so
 
   create-release:
     needs: build
@@ -69,7 +71,7 @@ jobs:
         with:
           tag_name: build-${{ github.run_number }}
           name: KenLM Android Build ${{ github.run_number }}
-          body: "Automated build of KenLM for Android.\n\nABIs: arm64-v8a, armeabi-v7a, x86_64, x86"
+          body: "KenLM for Android.\nABIs: arm64-v8a, armeabi-v7a, x86_64, x86"
           files: release/*
           draft: false
           prerelease: false
